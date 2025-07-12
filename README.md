@@ -1,4 +1,4 @@
-# Pic-to-PDF Merger 📄🖼️
+# PDF Generator 📄🖼️
 <img width="480" height="480" alt="1~2" src="https://github.com/user-attachments/assets/20a78c25-b346-4dfc-b5c5-799de5cc7855" />
 
 一个轻量的图形化工具，用于将多个 **图片和 PDF 文件合并为一个 PDF 文件**，支持拖动排序，并可选择是否压缩导出体积。
