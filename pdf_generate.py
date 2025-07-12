@@ -1,4 +1,3 @@
-# pic_to_pdf_gui.py
 import os
 import sys
 from pathlib import Path
