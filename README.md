@@ -1,6 +1,7 @@
 # PDF-Generator
 一个轻量的图形化工具，用于将多个 图片和 PDF 文件合并为一个 PDF 文件，支持拖动排序，并可选择是否压缩导出体积。
-<img width="1024" height="1024" alt="1" src="https://github.com/user-attachments/assets/bd930623-c5dd-444e-8d96-28fab8a65f5b" />
+<img width="240" height="240" alt="1~1" src="https://github.com/user-attachments/assets/ebc26bf4-683f-4988-a2fb-02ba55efe95b" />
+
 ✨ 功能亮点
       功能	                       描述
 🖼️ 图片 + PDF 混合导入	    支持导入 PNG / JPG / PDF，可任意排序合并
