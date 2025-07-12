@@ -15,3 +15,5 @@
 | 🗜️ 可选压缩导出 | 若启用压缩，会尝试通过 pikepdf + Ghostscript 将体积压缩至目标大小以下 |
 | 📦 无需依赖环境 | 打包后的 `.exe` 用户打开即用，无需安装 Python、Ghostscript、Poppler |
 | 💡 开源易拓展 | 全部由 Python（PyQt5）实现，代码简洁易读，便于二次开发 |
+最新版本下载链接
+https://github.com/markwaleo/PDF-Generator/releases/download/v1.0.0/pdf_generate.exe
