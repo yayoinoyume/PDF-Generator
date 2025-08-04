@@ -3,13 +3,32 @@
 
 一个轻量的图形化工具，用于将多个 **图片和 PDF 文件合并为一个 PDF 文件**，支持拖动排序，并可选择是否压缩导出体积。
 
-<img width="595" height="280" alt="image" src="https://github.com/user-attachments/assets/f1519efc-c13f-4e35-b75a-6504c738b527" />
+<img width="650" height="334" alt="image" src="https://github.com/user-attachments/assets/ab40b62a-3415-47c1-8bab-5e5b640bae6a" />
+
 
 最新版本下载链接
-
-https://github.com/markwaleo/PDF-Generator/releases/download/v1.0.0/pdf_generate.exe
+https://github.com/markwaleo/PDF-Generator/releases/download/v1.1.0/pdf_generator_2.exe
 ---
-## ✨ 功能亮点
+
+V1.1.0更新
+🎉 第二版发布，新增功能：
+- 拖入文件&文件夹
+- 进度条展示进度
+- 手动选择页面大小
+- 取消了长款比例一致的要求，只保留了宽度一致
+
+## ✨ 功能亮点（V1.1.0）
+| 功能 | 描述 |
+|------|------|
+| 🖼️ 支持图片 + PDF 混合导入 | 	可导入 PNG / JPG / PDF 文件，自由拖动排序，合并导出 | 
+| 📄 一键生成 PDF | 自动统一页面尺寸（支持手动选择），生成标准 PDF 文件 | 
+| 📦 智能压缩导出	| 全新压缩逻辑，使用 pikepdf 自动优化图片质量并重写 PDF | 
+| 🖱️ 拖拽导入 & 多选删除	|  新增拖拽文件导入，支持批量选中页面并删除，提升编辑效率 | 
+| 📦 无需安装环境 | 	打包为独立 .exe 可执行文件，用户无需安装 Python / Ghostscript / Poppler | 
+| 💡 完全开源 | 	基于 Python + PyQt5，代码结构清晰，适合学习与二次开发 | 
+| 🖼️ 增加任务进度条 | 支持实时查看任务进度 |
+
+## ✨ 功能亮点（V1.0.0）
 
 | 功能 | 描述 |
 |------|------|
