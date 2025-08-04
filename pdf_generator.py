@@ -1,16 +1,15 @@
-# pic_to_pdf_gui.py
 import os
 import sys
 from pathlib import Path
 from PIL import Image
-import subprocess
 from PyQt5.QtGui import QIcon
+from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
     QApplication, QFileDialog, QLabel, QListWidget, QListWidgetItem,
-    QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QPushButton, QMessageBox, QCheckBox
+    QMainWindow, QHBoxLayout, QVBoxLayout, QWidget, QPushButton, QMessageBox,
+    QCheckBox, QProgressBar, QSpinBox
 )
 
-# ==== 打包后资源路径支持（MEIPASS） ====
 if getattr(sys, 'frozen', False):
     BASE_DIR = Path(sys._MEIPASS)
     os.environ["PATH"] += os.pathsep + str(BASE_DIR / "vendor" / "gs")
@@ -21,41 +20,61 @@ else:
 
 from pdf2image import convert_from_path
 
-try:
-    import pikepdf
-except ImportError:
-    pikepdf = None
-
-
 class DraggableListWidget(QListWidget):
     def __init__(self):
         super().__init__()
-        self.setSelectionMode(QListWidget.ExtendedSelection)
-        self.setDragEnabled(True)
         self.setAcceptDrops(True)
+        self.setDragEnabled(True)
         self.setDragDropMode(QListWidget.InternalMove)
+        self.setSelectionMode(QListWidget.ExtendedSelection)
 
+    def dragEnterEvent(self, event):
+        if event.mimeData().hasUrls():
+            event.acceptProposedAction()
+        else:
+            super().dragEnterEvent(event)
+
+    def dragMoveEvent(self, event):
+        super().dragMoveEvent(event)
+
+    def dropEvent(self, event):
+        if event.mimeData().hasUrls():
+            for url in event.mimeData().urls():
+                path = url.toLocalFile()
+                if Path(path).suffix.lower() in {".png", ".jpg", ".jpeg", ".pdf"}:
+                    self.addItem(path)
+        else:
+            super().dropEvent(event)
 
 class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
-        self.setWindowTitle("PDF Generator(made by lyh)")
-        self.setMinimumWidth(600)
+        self.setWindowTitle("PDF Generator (made by lyh)")
+        self.setMinimumWidth(650)
         self.setWindowIcon(QIcon.fromTheme("application-pdf"))
 
         self.list_widget = DraggableListWidget()
-        add_btn =   QPushButton("➕ 添加文件", clicked=self.add_files)
-        rm_btn =    QPushButton("❌ 移除选中", clicked=self.remove_selected)
+        add_btn = QPushButton("➕ 添加文件", clicked=self.add_files)
+        rm_btn = QPushButton("❌ 移除选中", clicked=self.remove_selected)
         clear_btn = QPushButton("🗑 清空列表", clicked=self.list_widget.clear)
 
-        self.compress_chk = QCheckBox("压缩输出")
-        self.compress_chk.setChecked(False)
+        self.width_spin = QSpinBox()
+        self.width_spin.setRange(100, 4000)
+        self.width_spin.setValue(1024)
+        self.width_spin.setSuffix(" px")
+
+        self.progress = QProgressBar()
+        self.progress.setMinimum(0)
+        self.progress.setValue(0)
 
         merge_btn = QPushButton("📄 生成 PDF", clicked=self.merge_to_pdf)
         merge_btn.setStyleSheet("font-weight:bold;padding:8px;")
 
         side = QVBoxLayout()
-        for w in (add_btn, rm_btn, clear_btn, QLabel(""), self.compress_chk, merge_btn):
+        for w in (add_btn, rm_btn, clear_btn,
+                  QLabel("目标宽度 (px):"), self.width_spin,
+                  QLabel("进度："), self.progress,
+                  merge_btn):
             side.addWidget(w)
         side.addStretch()
 
@@ -81,31 +100,56 @@ class MainWindow(QMainWindow):
         if self.list_widget.count() == 0:
             QMessageBox.warning(self, "列表为空", "请先添加文件！")
             return
+
         out_path, _ = QFileDialog.getSaveFileName(
             self, "保存 PDF", "output.pdf", "PDF (*.pdf)"
         )
         if not out_path:
             return
+
         try:
+            total_pages = 0
+            for i in range(self.list_widget.count()):
+                path = self.list_widget.item(i).text()
+                ext = Path(path).suffix.lower()
+                if ext in {".png", ".jpg", ".jpeg"}:
+                    total_pages += 1
+                elif ext == ".pdf":
+                    pdf_imgs = convert_from_path(path, dpi=10, poppler_path=POPPLER_DIR)
+                    total_pages += len(pdf_imgs)
+
+            self.progress.setMaximum(total_pages)
+            self.progress.setValue(0)
+
             pages = self._load_pages()
             if not pages:
                 raise RuntimeError("无有效页面！")
+
             pages[0].save(out_path, save_all=True, append_images=pages[1:])
-            if self.compress_chk.isChecked():
-                self._compress_pdf(out_path)
             QMessageBox.information(self, "完成", f"PDF 已保存：{out_path}")
+
         except Exception as e:
             QMessageBox.critical(self, "错误", str(e))
+        finally:
+            self.progress.setValue(0)
 
     def _load_pages(self):
-        result, target_size = [], None
+        result = []
+        target_width = self.width_spin.value()
+        page_counter = 0
+
         for i in range(self.list_widget.count()):
             path = self.list_widget.item(i).text()
             ext = Path(path).suffix.lower()
             if ext in {".png", ".jpg", ".jpeg"}:
                 img = Image.open(path).convert("RGB")
-                target_size = target_size or img.size
-                result.append(img.resize(target_size, Image.Resampling.LANCZOS))
+                w_percent = target_width / img.width
+                new_height = int(img.height * w_percent)
+                img = img.resize((target_width, new_height), Image.Resampling.LANCZOS)
+                result.append(img)
+                page_counter += 1
+                self.progress.setValue(page_counter)
+
             elif ext == ".pdf":
                 pdf_pages = convert_from_path(
                     path, dpi=200,
@@ -113,43 +157,20 @@ class MainWindow(QMainWindow):
                 )
                 for pg in pdf_pages:
                     pg = pg.convert("RGB")
-                    target_size = target_size or pg.size
-                    result.append(pg.resize(target_size, Image.Resampling.LANCZOS))
-            else:
-                print("跳过:", path)
+                    w_percent = target_width / pg.width
+                    new_height = int(pg.height * w_percent)
+                    pg = pg.resize((target_width, new_height), Image.Resampling.LANCZOS)
+                    result.append(pg)
+                    page_counter += 1
+                    self.progress.setValue(page_counter)
+
         return result
-
-    def _compress_pdf(self, path):
-        if pikepdf:
-            try:
-                with pikepdf.open(path) as pdf:
-                    pdf.save(path, optimize_streams=True, linearize=True)
-            except Exception:
-                pass
-
-        gs = "gswin64c" if os.name == "nt" else "gs"
-        tmp = path + ".tmp"
-        cmd = [
-            gs, "-sDEVICE=pdfwrite",
-            "-dCompatibilityLevel=1.4",
-            "-dPDFSETTINGS=/ebook",
-            "-dNOPAUSE", "-dBATCH",
-            f"-sOutputFile={tmp}", path
-        ]
-        try:
-            subprocess.run(cmd, check=True, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
-            os.replace(tmp, path)
-        except Exception:
-            if os.path.exists(tmp):
-                os.remove(tmp)
-
 
 def main():
     app = QApplication(sys.argv)
     win = MainWindow()
     win.show()
     sys.exit(app.exec_())
-
 
 if __name__ == "__main__":
     main()
