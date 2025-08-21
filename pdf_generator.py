@@ -6,8 +6,8 @@ PDF Generator - 图片和PDF文件合并工具
 
 import os
 import sys
+import warnings
 from pathlib import Path
-from PIL import Image
 from PyQt5.QtGui import QIcon
 from PyQt5.QtCore import Qt
 from PyQt5.QtWidgets import (
@@ -16,14 +16,20 @@ from PyQt5.QtWidgets import (
     QCheckBox, QProgressBar, QSpinBox
 )
 
+# 抑制PIL和libpng的警告信息
+warnings.filterwarnings('ignore', category=UserWarning, module='PIL')
+os.environ['PYTHONWARNINGS'] = 'ignore::UserWarning:PIL'
+# 抑制libpng警告（通过环境变量）
+os.environ['LIBPNG_WARNINGS'] = '0'
+
 from worker_thread import PDFProcessWorker
 
 # 配置打包后的环境变量
 if getattr(sys, 'frozen', False):
     BASE_DIR = Path(sys._MEIPASS)
-    os.environ["PATH"] += os.pathsep + str(BASE_DIR / "vendor" / "gs")
-    os.environ["PATH"] += os.pathsep + str(BASE_DIR / "vendor" / "poppler")
-    POPPLER_DIR = str(BASE_DIR / "vendor" / "poppler")
+    vendor_dir = BASE_DIR / "vendor"
+    os.environ["PATH"] += os.pathsep + str(vendor_dir)
+    POPPLER_DIR = str(vendor_dir)
 else:
     POPPLER_DIR = None
 
@@ -226,10 +232,81 @@ class MainWindow(QMainWindow):
 
 def main():
     """程序入口函数"""
-    app = QApplication(sys.argv)
-    win = MainWindow()
-    win.show()
-    sys.exit(app.exec_())
+    try:
+        # 添加错误日志记录
+        import logging
+        logging.basicConfig(
+            level=logging.DEBUG,
+            format='%(asctime)s - %(levelname)s - %(message)s',
+            handlers=[
+                logging.FileHandler('app_debug.log', encoding='utf-8'),
+                logging.StreamHandler()
+            ]
+        )
+        
+        logging.info("程序启动中...")
+        
+        # 检查关键依赖
+        try:
+            from pdf2image import convert_from_path
+            logging.info("pdf2image导入成功")
+        except Exception as e:
+            logging.error(f"pdf2image导入失败: {e}")
+            raise
+            
+        try:
+            import pikepdf
+            logging.info(f"pikepdf导入成功，版本: {pikepdf.__version__}")
+        except Exception as e:
+            logging.error(f"pikepdf导入失败: {e}")
+            raise
+        
+        # 检查vendor目录
+        if getattr(sys, 'frozen', False):
+            BASE_DIR = Path(sys._MEIPASS)
+            vendor_dir = BASE_DIR / "vendor"
+            logging.info(f"运行环境: 打包模式，vendor目录: {vendor_dir}")
+            logging.info(f"vendor目录存在: {vendor_dir.exists()}")
+            if vendor_dir.exists():
+                vendor_files = list(vendor_dir.glob('*.exe'))
+                logging.info(f"vendor目录中的exe文件: {[f.name for f in vendor_files]}")
+        else:
+            logging.info("运行环境: 开发模式")
+        
+        app = QApplication(sys.argv)
+        logging.info("QApplication创建成功")
+        
+        win = MainWindow()
+        logging.info("MainWindow创建成功")
+        
+        win.show()
+        logging.info("窗口显示成功")
+        
+        sys.exit(app.exec_())
+        
+    except Exception as e:
+        error_msg = f"程序启动失败: {str(e)}"
+        print(error_msg)
+        
+        # 尝试记录到文件
+        try:
+            with open('startup_error.log', 'w', encoding='utf-8') as f:
+                import traceback
+                f.write(f"启动错误: {error_msg}\n")
+                f.write(f"详细错误信息:\n{traceback.format_exc()}")
+        except:
+            pass
+            
+        # 显示错误对话框（如果可能）
+        try:
+            from PyQt5.QtWidgets import QMessageBox
+            if not QApplication.instance():
+                error_app = QApplication(sys.argv)
+            QMessageBox.critical(None, "启动错误", error_msg)
+        except:
+            pass
+            
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()
