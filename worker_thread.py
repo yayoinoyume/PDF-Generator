@@ -175,7 +175,10 @@ class PDFProcessWorker(QThread):
                     # 定期清理内存
                     if page_count % 10 == 0:
                         gc.collect()
-        except Exception:
+        except Exception as e:
+            import logging
+            logging.error(f"处理文件失败 {path}: {str(e)}")
+            logging.error(f"错误详情: {type(e).__name__}: {e}")
             return [], 0
             
         return result, page_count
@@ -213,7 +216,10 @@ class PDFProcessWorker(QThread):
                     current_progress = min(processed_pages, total_pages)
                     self.progress_updated.emit(current_progress, f"已处理 {processed_pages}/{total_pages} 页")
                     
-                except Exception:
+                except Exception as e:
+                    import logging
+                    logging.error(f"多线程处理文件失败 {Path(path).name}: {str(e)}")
+                    logging.error(f"错误详情: {type(e).__name__}: {e}")
                     current_progress = min(processed_pages, total_pages)
                     self.progress_updated.emit(current_progress, f"处理文件失败: {Path(path).name}")
         
