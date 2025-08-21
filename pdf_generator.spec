@@ -25,7 +25,7 @@ excludes = [
     'PyQt5.QtNetwork', 'PyQt5.QtXml', 'PyQt5.QtSvg',
     
     # Pillow (PIL) Exclusions for unused image formats
-    'PIL.BmpImagePlugin', 'PIL.GifImagePlugin', 'PIL.TiffImagePlugin',
+    'PIL.BmpImagePlugin', 'PIL.GifImagePlugin',
     'PIL.PpmImagePlugin', 'PIL.IcnsImagePlugin', 'PIL.IcoImagePlugin',
     'PIL.ImImagePlugin', 'PIL.MspImagePlugin', 'PIL.SgiImagePlugin',
     'PIL.SpiderImagePlugin', 'PIL.TgaImagePlugin', 'PIL.XbmImagePlugin',
